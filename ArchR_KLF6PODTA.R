@@ -585,46 +585,6 @@ p18
 saveRDS(Klf6_Proj3, file = "Klf6_Proj3.rds")
 saveArchRProject(ArchRProj = Klf6_Proj3, outputDirectory = "Klf6_Proj3", load = FALSE)
 
-
-###################################################################################
-#Did not run this as it was calling Injured PT A for both injured and the same for other PTs
-remapClust <- c(
-  "01_CD/PC" = "CD/PC",
-  "02_CNT" = "CNT",
-  "03_DCT" = "DCT",
-  "04_EC-2" = "EC",
-  "05_EC-1" = "EC",
-  "06_IC-A" = "IC-A",
-  "07_IC-B-1" = "IC-B",
-  "08_IC-B-2" = "IC-B",
-  "09_Injured PT-A" = "Injured PT-A",
-  "10_Inj PT-B" = "Inj PT-B",
-  "11_LH-AL-1" = "LH-AL",
-  "12_LH-AL-2" = "LH-AL",
-  "13_LH-DL" = "LH-DL",
-  "14_Macrophage" = "Macrophage",
-  "15_MC" = "MC",
-  "16_Podocytes" = "Podocytes",
-  "17_PT-S1-S2-2" = "PT-S1-S2-2",
-  "18_PT-S1-S2-1" = "PT-S1-S2-1",
-  "19_PT-S3-3" = "PT-S3-1",
-  "20_PT-S3-2" = "PT-S3-1",
-   "21_PT-S3-1" = "PT-S3-1"
-)
-
-
-
-remapClust <- remapClust[names(remapClust) %in% labelNew]
-
-
-labelNew2 <- mapLabels(labelNew, oldLabels = names(remapClust), newLabels = remapClust)
-labelNew2
-
-Klf6_Proj3$Clusters2 <- mapLabels(Klf6_Proj3$Clusters, newLabels = labelNew2, oldLabels = labelOld)
-
-
-################################################
-
 p16 <- plotEmbedding(Klf6_Proj3, colorBy = "cellColData", name = "predictedGroup", labelMeans = FALSE, baseSize = 18) + theme(text=element_text(family="Arial", size=18), legend.text = element_text(size = 15
                                                                                                                                                              ))
 p16
@@ -653,26 +613,13 @@ cM
 cM <- confusionMatrix(paste0(Klf6_Proj4$predictedGroup), paste0(Klf6_Proj4$Sample))
 cM
 
-
-
-
-
 pathToMacs2 <- findMACS()
 
-#Calling Peaks w/ Macs2(couldn't use it)
+#Calling Peaks w/ Macs2
 Klf6_Proj4 <- addReproduciblePeakSet(
   ArchRProj = Klf6_Proj4, 
   groupBy = "predictedGroup", 
    pathToMacs2 = "/gpfs/home/ngujarati/Conda/bin/macs2"
-)
-#Calling Peaks w/ TileMatrix
-
-Klf6_Proj4 <- addReproduciblePeakSet(
-  ArchRProj = Klf6_Proj4, 
-  groupBy = "Clusters2", 
-  peakMethod = "Tiles",
-  method = "p"
- 
 )
 
 getPeakSet(Klf6_Proj4)
@@ -683,7 +630,6 @@ write.csv(markersPeaks@colData, file = "Klf6_markerPeaks.csv")
 
 saveArchRProject(ArchRProj = Klf6_Proj4, outputDirectory = "Klf6_Proj4", load = FALSE)
 loadArchRProject(path = "/gpfs/projects/MallipattuGroup/Neha/01.Raw_data/Archr/Klf6_Proj5", force = FALSE, showLogo = TRUE)
-Klf6_Proj4<-readRDS("/Users/rbronste/Klf6_Proj4/Save-ArchR-Project.rds")
 
 Klf6_Proj5 <- addPeakMatrix(Klf6_Proj4)
 
@@ -715,8 +661,6 @@ markerList
 write.csv(markerList@colData, file = "Klf6_markerList_predictedgroup.csv")
 save.image("/gpfs/projects/MallipattuGroup/Neha/01.Raw_data/Archr/Predictedgroup/markerList.RData")
 
-markerList$`InjuredPT-A`
-
 #Instead of a list of DataFrame objects, we can use getMarkers() to return a GRangesList object by setting returnGR = TRUE.
 markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.01 & Log2FC >= 1", returnGR = TRUE)
 markerList
@@ -736,7 +680,7 @@ draw(heatmapPeaks, heatmap_legend_side = "bot", annotation_legend_side = "bot")
 pma <- markerPlot(seMarker = markersPeaks, name = "Pod", cutOff = "FDR <= 0.1 & Log2FC >= 1", plotAs = "MA")
 pma
 
-pv <- markerPlot(seMarker = markersPeaks, name = "PEC", cutOff = "FDR <= 0.1 & Log2FC >= 1", plotAs = "Volcano")
+pv <- markerPlot(seMarker = markersPeaks, name = "Pod", cutOff = "FDR <= 0.1 & Log2FC >= 1", plotAs = "Volcano")
 pv
 
 # Marker Peaks in Browser Tracks
@@ -765,24 +709,7 @@ p <- plotBrowserTrack(
 )
 
 grid::grid.newpage()
-grid::grid.draw(p$Klf6)
-
-#Pairwise Testing Between Groups
-markerTest <- getMarkerFeatures(
-  ArchRProj = Klf6_Proj5, 
-  useMatrix = "PeakMatrix",
-  groupBy = "Clusters2",
-  testMethod = "wilcoxon",
-  bias = c("TSSEnrichment", "log10(nFrags)"),
-  useGroups = "InjuredPT-A",
-  bgdGroups = c("CD/PC", "DCT","EC-1","EC-2","IC-B-1", "InjuredPT-A","LH-AL-1","LH-DL","Macrophage", "MC", "Podocytes",  "PT-S1-S2-1",  "PT-S3-1", "PT-S3-2")
-)
-
-pma <- markerPlot(seMarker = markerTest, name = "InjuredPT-A", cutOff = "FDR <= 0.1 & abs(Log2FC) >= 1", plotAs = "MA") + theme(legend.text = element_text(size = 13))
-pma
-
-pv <- markerPlot(seMarker = markerTest, name = "InjuredPT-A", cutOff = "FDR <= 0.1 & abs(Log2FC) >= 1", plotAs = "Volcano")
-pv
+grid::grid.draw(p$Clu)
 
 saveArchRProject(ArchRProj = Klf6_Proj5, outputDirectory = "Klf6_Proj5", load = FALSE)
 saveRDS(Klf6_Proj5, file = "Klf6_Proj5.rds")
@@ -883,7 +810,7 @@ plotVarDev <- getVarDeviations(Klf6_Proj5, name = "MotifMatrix", plot = TRUE)
 plotVarDev
 
 #extract a subset of motifs for downstream analysis
-motifs <- c("Sfpi1","Smarcc1","Fos","Blc11a")
+motifs <- c("Klf6","WT1","Klf15","Tcf21")
 markerMotifs <- getFeatures(Klf6_Proj5, select = paste(motifs, collapse="|"), useMatrix = "MotifMatrix")
 markerMotifs
 
@@ -891,7 +818,7 @@ Klf6_Proj5 <- addImputeWeights(Klf6_Proj5)
 
 #plot the distribution of chromVAR deviation scores for each cluster
 p <- plotGroups(ArchRProj = Klf6_Proj5, 
-                groupBy = "Clusters2", 
+                groupBy = "predictedGroup", 
                 colorBy = "MotifMatrix", 
                 name = markerMotifs,
                 imputeWeights = getImputeWeights(Klf6_Proj5)
@@ -1037,7 +964,7 @@ plotFootprints(
 seTSS <- getFootprints(
   ArchRProj = Klf6_Proj5, 
   positions = GRangesList(TSS = getTSS(Klf6_Proj5)), 
-  groupBy = "Clusters2",
+  groupBy = "predictedGroup",
   flank = 2000
 )
 
@@ -1070,12 +997,12 @@ cA[[1]]
 
 #Plotting browser tracks of Co-accessibility
 markerGenes  <- c(
-  "Cd44" #PEC
+  "Clu"
 )
 
 p <- plotBrowserTrack(
   ArchRProj = Klf6_Proj5, 
-  groupBy = "Clusters2", 
+  groupBy = "predictedGroup", 
   geneSymbol = markerGenes, 
   upstream = 55000,
   downstream = 55000,
@@ -1117,15 +1044,15 @@ p2g[[1]]
 
 p <- plotBrowserTrack(
   ArchRProj = Klf6_Proj5, 
-  groupBy = "Clusters2", 
+  groupBy = "predictedGroup", 
   geneSymbol = markerGenes, 
   upstream = 50000,
   downstream = 50000,
-  features = getMarkers(markersPeaks, cutOff = "FDR <= 0.1 & Log2FC >= 1", returnGR = TRUE)["PEC"],
+  features = getMarkers(markersPeaks, cutOff = "FDR <= 0.1 & Log2FC >= 1", returnGR = TRUE)["Pod"],
   loops = getPeak2GeneLinks(Klf6_Proj5)
 )
 
 grid::grid.newpage()
-grid::grid.draw(p$Cd44)
+grid::grid.draw(p$Clu)
 
 
